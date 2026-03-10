@@ -1,0 +1,63 @@
+groups:
+  - name: restauranty.rules
+    rules:
+
+      # ── High Error Rate ──────────────────────────────────────────────────
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+          /
+          sum(rate(http_requests_total[5m])) by (service)
+          > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate on {{ $labels.service }}"
+          description: "{{ $labels.service }} has >5% error rate for 2+ minutes ({{ $value | humanizePercentage }})"
+
+      # ── High Response Latency ────────────────────────────────────────────
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))
+          > 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 latency on {{ $labels.service }}"
+          description: "p95 latency is {{ $value }}s on {{ $labels.service }}"
+
+      # ── Pod Crash Looping ────────────────────────────────────────────────
+      - alert: PodCrashLooping
+        expr: |
+          increase(kube_pod_container_status_restarts_total{namespace="restauranty"}[1h]) > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash-looping"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted {{ $value }} times in 1h"
+
+      # ── Service Down ─────────────────────────────────────────────────────
+      - alert: ServiceDown
+        expr: up{job=~"auth|discounts|items"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is DOWN"
+          description: "Prometheus cannot scrape {{ $labels.job }}. Check the pod."
+
+      # ── High Memory Usage ────────────────────────────────────────────────
+      - alert: HighMemoryUsage
+        expr: |
+          (container_memory_working_set_bytes{namespace="restauranty", container!=""}
+          / container_spec_memory_limit_bytes{namespace="restauranty", container!=""}
+          ) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage in {{ $labels.container }}"
+          description: "Container {{ $labels.container }} is using {{ $value | humanizePercentage }} of its memory limit"

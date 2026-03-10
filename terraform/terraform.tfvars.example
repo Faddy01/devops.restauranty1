@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored — never commit real values.
+
+prefix             = "restauranty"
+location           = "westeurope"
+environment        = "production"
+kubernetes_version = "1.29"
+node_count         = 2
+node_vm_size       = "Standard_B2s"
