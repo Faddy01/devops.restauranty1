@@ -28,7 +28,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: items
-          image: YOUR_REGISTRY/restauranty-items:latest
+          image: fawad9/restauranty-items:55caf10
           imagePullPolicy: Always
           ports:
             - containerPort: 3003

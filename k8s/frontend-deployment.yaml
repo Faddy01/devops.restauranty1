@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: YOUR_REGISTRY/restauranty-frontend:latest
+          image: fawad9/restauranty-frontend:55caf10
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
