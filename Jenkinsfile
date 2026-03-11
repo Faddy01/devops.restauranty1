@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        nodejs "NodeJS20"
+    }
 
     environment {
         DOCKERHUB_USER  = 'fawad9'
