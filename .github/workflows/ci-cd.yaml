@@ -160,7 +160,6 @@ jobs:
               k8s/${SVC}-deployment.yaml 2>/dev/null || \
             sed -i "s|YOUR_REGISTRY/restauranty-${SVC}:latest|${{ env.REGISTRY }}/restauranty-${SVC}:${SHORT_SHA}|g" \
               k8s/frontend-deployment.yaml || true
-          done
 
       - name: Deploy all manifests
         run: |
@@ -172,11 +171,7 @@ jobs:
           kubectl apply -f k8s/ingress.yaml
           kubectl apply -f k8s/network-policy.yaml
 
-      - name: Wait for rollouts
         run: |
-          for DEP in auth discounts items frontend; do
-            kubectl rollout status deployment/$DEP -n ${{ env.NAMESPACE }} --timeout=120s
-          done
 
       - name: Verify deployment
         run: |
