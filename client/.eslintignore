@@ -1,0 +1,10 @@
+src/components/Campaign/Campaign.jsx
+src/components/Coupon/Coupon.jsx
+src/components/Dietary/Dietary.jsx
+src/components/IsAnon/IsAnon.jsx
+src/pages/Admin/Campaigns/EditCampaign/EditCampaign.jsx
+src/pages/Admin/Coupons/EditCoupon/EditCoupon.jsx
+src/pages/Admin/Dietary/EditDietary/EditDietary.jsx
+src/pages/Admin/Items/EditItem/EditItem.jsx
+src/pages/Admin/Items/ItemPage/ItemPage.jsx
+src/pages/Admin/Items/ItemsPageList/ItemsPageList.jsx
