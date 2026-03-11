@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'node:20-alpine'
+            args '-v /var/run/docker.sock:/var/run/docker.sock -u root'
+        }
+    }
 
     environment {
         DOCKERHUB_USER  = 'fawad9'
@@ -13,6 +18,16 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Install Tools') {
+            steps {
+                sh '''
+                    apk add --no-cache docker-cli curl bash python3 py3-pip
+                    curl -sL https://aka.ms/InstallAzureCLIDeb | bash || \
+                    pip3 install azure-cli --break-system-packages || true
+                '''
             }
         }
 
@@ -50,6 +65,7 @@ pipeline {
         }
 
         stage('Build & Push Docker Images') {
+            agent { label 'built-in' }
             steps {
                 script {
                     def shortSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -60,18 +76,24 @@ pipeline {
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
-                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-
-                        for (svc in ['auth', 'discounts', 'items']) {
-                            sh """
-                                docker buildx build --platform linux/amd64 \
-                                    -t ${DOCKERHUB_USER}/restauranty-${svc}:${shortSha} \
-                                    -t ${DOCKERHUB_USER}/restauranty-${svc}:latest \
-                                    ./backend/${svc} --push
-                            """
-                        }
+                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
 
                         sh """
+                            docker buildx build --platform linux/amd64 \
+                                -t ${DOCKERHUB_USER}/restauranty-auth:${shortSha} \
+                                -t ${DOCKERHUB_USER}/restauranty-auth:latest \
+                                ./backend/auth --push
+
+                            docker buildx build --platform linux/amd64 \
+                                -t ${DOCKERHUB_USER}/restauranty-discounts:${shortSha} \
+                                -t ${DOCKERHUB_USER}/restauranty-discounts:latest \
+                                ./backend/discounts --push
+
+                            docker buildx build --platform linux/amd64 \
+                                -t ${DOCKERHUB_USER}/restauranty-items:${shortSha} \
+                                -t ${DOCKERHUB_USER}/restauranty-items:latest \
+                                ./backend/items --push
+
                             docker buildx build --platform linux/amd64 \
                                 -t ${DOCKERHUB_USER}/restauranty-frontend:${shortSha} \
                                 -t ${DOCKERHUB_USER}/restauranty-frontend:latest \
@@ -83,6 +105,7 @@ pipeline {
         }
 
         stage('Deploy to AKS') {
+            agent { label 'built-in' }
             steps {
                 withCredentials([azureServicePrincipal('azure-credentials')]) {
                     sh """
@@ -118,11 +141,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo 'Pipeline completed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed!'
-        }
+        success { echo 'Pipeline completed successfully!' }
+        failure { echo 'Pipeline failed!' }
     }
 }
