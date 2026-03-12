@@ -1,0 +1,16 @@
+ 1085  kubectl patch deployment discounts -n restauranty --type='json' -p='[\n  {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/api/discounts"},\n  {"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/api/discounts"}\n]'
+ 1086  kubectl patch deployment items -n restauranty --type='json' -p='[\n  {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/api/items"},\n  {"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/api/items"}\n]'\n
+ 1087  sleep 30 && kubectl get pods -n restauranty
+ 1088  kubectl delete pod discounts-5dd57bf5cf-jwrsq items-5dd954f64c-xmnx5 -n restauranty 2>/dev/null || true
+ 1089  kubectl get pods -n restauranty
+ 1090  curl http://localhost:9090/api/v1/targets | python3 -m json.tool | grep -E "health|job|lastError" | head -20\n
+ 1091  curl http://57.156.49.75/api/auth/
+ 1092  curl http://57.156.49.75/api/items/\n
+ 1093  curl http://57.156.49.75/api/discounts/
+ 1094  for i in {1..20}; do\n  curl -s http://57.156.49.75/api/auth/ > /dev/null\n  curl -s http://57.156.49.75/api/items/ > /dev/null\n  curl -s http://57.156.49.75/api/discounts/ > /dev/null\n\n\n\n\n\ndone
+ 1095  curl -s http://localhost:9090/api/v1/label/__name__/values | python3 -m json.tool | grep http
+ 1096  git add .
+ 1097  git commit -m "feat: complete DevOps pipeline - monitoring live with Grafana"\n
+ 1098  git push origin main\n
+ 1099  docker images
+ 1100  kubectl get certificate -n restauranty --watch\n

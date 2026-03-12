@@ -24,10 +24,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - restauranty.yourdomain.com     # ← replace with your domain
+        - fawadus.azure.diogohack.shop
       secretName: restauranty-tls
   rules:
-    - host: restauranty.yourdomain.com   # ← replace with your domain
+    - host: fawadus.azure.diogohack.shop
       http:
         paths:
           # ── Auth microservice ────────────────────────────────────────────

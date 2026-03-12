@@ -97,9 +97,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: REACT_APP_SERVER_URL=https://fawadus.azure.diogohack.shop
-            REACT_APP_SERVER_AUTH_URL=https://fawadus.azure.diogohack.shop
-            REACT_APP_SERVER_ITEMS_URL=https://fawadus.azure.diogohack.shop
-            REACT_APP_SERVER_DISCOUNTS_URL=https://fawadus.azure.diogohack.shop
+            REACT_APP_SERVER_AUTH_URL=https://fawadus.azure.diogohack.shop/api/auth
+            REACT_APP_SERVER_ITEMS_URL=https://fawadus.azure.diogohack.shop/api/items
+            REACT_APP_SERVER_DISCOUNTS_URL=https://fawadus.azure.diogohack.shop/api/discounts
 
   # ── JOB 3: Deploy ────────────────────────────────────────────────────────────
   deploy:

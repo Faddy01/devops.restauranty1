@@ -1,15 +1,7 @@
 version: "3.9"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Restauranty — Local Development Stack
-# Usage:  docker compose up --build
-# App:    http://localhost  (HAProxy → services)
-# Mongo:  localhost:27017
-# ─────────────────────────────────────────────────────────────────────────────
-
 services:
 
-  # ── MongoDB ────────────────────────────────────────────────────────────────
   mongo:
     image: mongo:7
     container_name: restauranty-mongo
@@ -26,7 +18,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Auth microservice ──────────────────────────────────────────────────────
   auth:
     build:
       context: ./backend/auth
@@ -50,7 +41,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Discounts microservice ─────────────────────────────────────────────────
   discounts:
     build:
       context: ./backend/discounts
@@ -74,7 +64,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Items microservice ─────────────────────────────────────────────────────
   items:
     build:
       context: ./backend/items
@@ -98,13 +87,15 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── React Frontend ─────────────────────────────────────────────────────────
   frontend:
     build:
       context: ./client
       dockerfile: Dockerfile
       args:
-        REACT_APP_API_URL: /
+        REACT_APP_SERVER_URL: https://fawadus.azure.diogohack.shop
+        REACT_APP_SERVER_AUTH_URL: https://fawadus.azure.diogohack.shop
+        REACT_APP_SERVER_ITEMS_URL: https://fawadus.azure.diogohack.shop
+        REACT_APP_SERVER_DISCOUNTS_URL: https://fawadus.azure.diogohack.shop
     container_name: restauranty-frontend
     restart: unless-stopped
     ports:
@@ -117,14 +108,13 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── HAProxy (single entry-point on port 80) ────────────────────────────────
   haproxy:
     image: haproxy:2.9-alpine
     container_name: restauranty-haproxy
     restart: unless-stopped
     ports:
       - "80:80"
-      - "8404:8404"   # HAProxy stats dashboard
+      - "8404:8404"
     volumes:
       - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     depends_on:
