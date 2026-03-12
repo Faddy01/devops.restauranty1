@@ -32,7 +32,7 @@ spec:
         paths:
           # ── Auth microservice ────────────────────────────────────────────
           - path: /api/auth #(/|$)(.*)
-            pathType: prefix #ImplementationSpecific
+            pathType: Prefix #ImplementationSpecific
             backend:
               service:
                 name: auth-service
@@ -41,7 +41,7 @@ spec:
 
           # ── Discounts microservice ───────────────────────────────────────
           - path: /api/discounts #(/|$)(.*)
-            pathType: prefix #ImplementationSpecific
+            pathType: Prefix #ImplementationSpecific
             backend:
               service:
                 name: discounts-service
@@ -50,7 +50,7 @@ spec:
 
           # ── Items microservice ───────────────────────────────────────────
           - path: /api/items #(/|$)(.*)
-            pathType: prefix #ImplementationSpecific
+            pathType: Prefix #ImplementationSpecific
             backend:
               service:
                 name: items-service
