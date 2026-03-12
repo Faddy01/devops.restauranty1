@@ -5,9 +5,9 @@ metadata:
   namespace: restauranty
   annotations:
     kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/use-regex: "true"
+    #nginx.ingress.kubernetes.io/use-regex: "true"
     # Strip /api/auth prefix before forwarding to auth service
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    #nginx.ingress.kubernetes.io/rewrite-target: /$2
     # Rate limiting
     nginx.ingress.kubernetes.io/limit-rps: "20"
     # CORS
@@ -31,8 +31,8 @@ spec:
       http:
         paths:
           # ── Auth microservice ────────────────────────────────────────────
-          - path: /api/auth(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/auth #(/|$)(.*)
+            pathType: prefix #ImplementationSpecific
             backend:
               service:
                 name: auth-service
@@ -40,8 +40,8 @@ spec:
                   number: 80
 
           # ── Discounts microservice ───────────────────────────────────────
-          - path: /api/discounts(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/discounts #(/|$)(.*)
+            pathType: prefix #ImplementationSpecific
             backend:
               service:
                 name: discounts-service
@@ -49,8 +49,8 @@ spec:
                   number: 80
 
           # ── Items microservice ───────────────────────────────────────────
-          - path: /api/items(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api/items #(/|$)(.*)
+            pathType: prefix #ImplementationSpecific
             backend:
               service:
                 name: items-service
