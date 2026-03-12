@@ -17,7 +17,6 @@ env:
   NAMESPACE: restauranty
 
 jobs:
-
   # ── JOB 1: Test ─────────────────────────────────────────────────────────────
   test:
     name: Test (${{ matrix.service.name }})
@@ -25,10 +24,10 @@ jobs:
     strategy:
       matrix:
         service:
-          - { name: auth,      dir: backend/auth }
+          - { name: auth, dir: backend/auth }
           - { name: discounts, dir: backend/discounts }
-          - { name: items,     dir: backend/items }
-          - { name: frontend,  dir: client }
+          - { name: items, dir: backend/items }
+          - { name: frontend, dir: client }
 
     steps:
       - uses: actions/checkout@v4
@@ -61,10 +60,10 @@ jobs:
     strategy:
       matrix:
         service:
-          - { name: auth,      dir: backend/auth }
+          - { name: auth, dir: backend/auth }
           - { name: discounts, dir: backend/discounts }
-          - { name: items,     dir: backend/items }
-          - { name: frontend,  dir: client }
+          - { name: items, dir: backend/items }
+          - { name: frontend, dir: client }
 
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +96,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: REACT_APP_API_URL=/
+          build-args: REACT_APP_SERVER_URL=https://fawadus.azure.diogohack.shop
+            REACT_APP_SERVER_AUTH_URL=https://fawadus.azure.diogohack.shop
+            REACT_APP_SERVER_ITEMS_URL=https://fawadus.azure.diogohack.shop
+            REACT_APP_SERVER_DISCOUNTS_URL=https://fawadus.azure.diogohack.shop
 
   # ── JOB 3: Deploy ────────────────────────────────────────────────────────────
   deploy:
