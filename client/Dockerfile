@@ -35,6 +35,6 @@ COPY --from=builder /app/build /usr/share/nginx/html
 
 EXPOSE 3000
 
-  CMD wget -qO- http://localhost:3000/ || exit 1
+  #CMD wget -qO- http://localhost:3000/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
