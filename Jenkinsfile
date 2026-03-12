@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:20-alpine'
-            args '-v /var/run/docker.sock:/var/run/docker.sock -u root'
-        }
-    }
+    agent { label 'built-in' }
 
     environment {
         DOCKERHUB_USER  = 'fawad9'
@@ -21,17 +16,14 @@ pipeline {
             }
         }
 
-        stage('Install Tools') {
-            steps {
-                sh '''
-                    apk add --no-cache docker-cli curl bash python3 py3-pip
-                    curl -sL https://aka.ms/InstallAzureCLIDeb | bash || \
-                    pip3 install azure-cli --break-system-packages || true
-                '''
-            }
-        }
-
         stage('Test') {
+            agent {
+                docker {
+                    image 'node:20-alpine'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -u root'
+                    reuseNode true
+                }
+            }
             parallel {
                 stage('Test Auth') {
                     steps {
