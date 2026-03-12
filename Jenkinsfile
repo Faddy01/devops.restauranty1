@@ -8,14 +8,23 @@ spec:
   containers:
   - name: node
     image: node:20-alpine
-    command: ['sleep', '9999']
+    command:
+    - cat
+    tty: true
+
   - name: docker
     image: docker:24-dind
     securityContext:
       privileged: true
+    command:
+    - dockerd-entrypoint.sh
+    args:
+    - --host=tcp://0.0.0.0:2375
+    - --host=unix:///var/run/docker.sock
     env:
     - name: DOCKER_TLS_CERTDIR
       value: ""
+
   - name: jnlp
     image: jenkins/inbound-agent:latest
 """
@@ -41,31 +50,39 @@ spec:
 
         stage('Test') {
             parallel {
+
                 stage('Test Auth') {
                     steps {
                         dir('backend/auth') {
-                            sh 'npm ci && npm test --if-present -- --watchAll=false --passWithNoTests || true'
+                            sh 'npm ci'
+                            sh 'npm test --if-present -- --watchAll=false --passWithNoTests || true'
                         }
                     }
                 }
+
                 stage('Test Discounts') {
                     steps {
                         dir('backend/discounts') {
-                            sh 'npm ci && npm test --if-present -- --watchAll=false --passWithNoTests || true'
+                            sh 'npm ci'
+                            sh 'npm test --if-present -- --watchAll=false --passWithNoTests || true'
                         }
                     }
                 }
+
                 stage('Test Items') {
                     steps {
                         dir('backend/items') {
-                            sh 'npm ci && npm test --if-present -- --watchAll=false --passWithNoTests || true'
+                            sh 'npm ci'
+                            sh 'npm test --if-present -- --watchAll=false --passWithNoTests || true'
                         }
                     }
                 }
+
                 stage('Build Frontend') {
                     steps {
                         dir('client') {
-                            sh 'npm ci && CI=false npm run build'
+                            sh 'npm ci'
+                            sh 'CI=false npm run build'
                         }
                     }
                 }
@@ -73,41 +90,54 @@ spec:
         }
 
         stage('Build & Push Docker Images') {
+
             steps {
+
                 container('node') {
                     script {
-                        sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/Restauranty'
-                        def shortSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                        env.SHORT_SHA = shortSha
+                        sh 'git config --global --add safe.directory $WORKSPACE'
+                        env.SHORT_SHA = sh(
+                            script: 'git rev-parse --short HEAD',
+                            returnStdout: true
+                        ).trim()
                     }
                 }
+
                 container('docker') {
+
                     withCredentials([usernamePassword(
                         credentialsId: 'dockerhub-credentials',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
-                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+
+                        sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+
+                        docker buildx create --use || true
+                        docker buildx inspect --bootstrap
+                        '''
+
                         sh """
-                            docker buildx build --platform linux/amd64 \
-                                -t ${DOCKERHUB_USER}/restauranty-auth:${env.SHORT_SHA} \
-                                -t ${DOCKERHUB_USER}/restauranty-auth:latest \
-                                ./backend/auth --push
+                        docker buildx build --platform linux/amd64 \
+                          -t ${DOCKERHUB_USER}/restauranty-auth:${env.SHORT_SHA} \
+                          -t ${DOCKERHUB_USER}/restauranty-auth:latest \
+                          ./backend/auth --push
 
-                            docker buildx build --platform linux/amd64 \
-                                -t ${DOCKERHUB_USER}/restauranty-discounts:${env.SHORT_SHA} \
-                                -t ${DOCKERHUB_USER}/restauranty-discounts:latest \
-                                ./backend/discounts --push
+                        docker buildx build --platform linux/amd64 \
+                          -t ${DOCKERHUB_USER}/restauranty-discounts:${env.SHORT_SHA} \
+                          -t ${DOCKERHUB_USER}/restauranty-discounts:latest \
+                          ./backend/discounts --push
 
-                            docker buildx build --platform linux/amd64 \
-                                -t ${DOCKERHUB_USER}/restauranty-items:${env.SHORT_SHA} \
-                                -t ${DOCKERHUB_USER}/restauranty-items:latest \
-                                ./backend/items --push
+                        docker buildx build --platform linux/amd64 \
+                          -t ${DOCKERHUB_USER}/restauranty-items:${env.SHORT_SHA} \
+                          -t ${DOCKERHUB_USER}/restauranty-items:latest \
+                          ./backend/items --push
 
-                            docker buildx build --platform linux/amd64 \
-                                -t ${DOCKERHUB_USER}/restauranty-frontend:${env.SHORT_SHA} \
-                                -t ${DOCKERHUB_USER}/restauranty-frontend:latest \
-                                ./client --push
+                        docker buildx build --platform linux/amd64 \
+                          -t ${DOCKERHUB_USER}/restauranty-frontend:${env.SHORT_SHA} \
+                          -t ${DOCKERHUB_USER}/restauranty-frontend:latest \
+                          ./client --push
                         """
                     }
                 }
@@ -115,37 +145,45 @@ spec:
         }
 
         stage('Deploy to AKS') {
+
             steps {
+
                 container('node') {
-                    sh 'apk add --no-cache curl bash python3 py3-pip'
-                    sh 'pip3 install azure-cli --break-system-packages || true'
+
+                    sh '''
+                    apk add --no-cache curl bash python3 py3-pip
+                    pip3 install azure-cli --break-system-packages || true
+                    '''
+
                     withCredentials([azureServicePrincipal('azure-credentials')]) {
+
                         sh """
-                            az login --service-principal \
-                                -u \$AZURE_CLIENT_ID \
-                                -p \$AZURE_CLIENT_SECRET \
-                                --tenant \$AZURE_TENANT_ID
+                        az login --service-principal \
+                          -u \$AZURE_CLIENT_ID \
+                          -p \$AZURE_CLIENT_SECRET \
+                          --tenant \$AZURE_TENANT_ID
 
-                            az aks get-credentials \
-                                --resource-group ${AKS_RG} \
-                                --name ${AKS_CLUSTER} \
-                                --overwrite-existing
+                        az aks get-credentials \
+                          --resource-group ${AKS_RG} \
+                          --name ${AKS_CLUSTER} \
+                          --overwrite-existing
 
-                            for SVC in auth discounts items; do
-                                sed -i "s|fawad9/restauranty-\${SVC}:.*|fawad9/restauranty-\${SVC}:${env.SHORT_SHA}|g" \
-                                    k8s/\${SVC}-deployment.yaml
-                            done
-                            sed -i "s|fawad9/restauranty-frontend:.*|fawad9/restauranty-frontend:${env.SHORT_SHA}|g" \
-                                k8s/frontend-deployment.yaml
+                        for SVC in auth discounts items; do
+                          sed -i "s|${DOCKERHUB_USER}/restauranty-\${SVC}:.*|${DOCKERHUB_USER}/restauranty-\${SVC}:${env.SHORT_SHA}|g" \
+                          k8s/\${SVC}-deployment.yaml
+                        done
 
-                            kubectl apply -f k8s/namespace.yaml
-                            kubectl apply -f k8s/auth-deployment.yaml
-                            kubectl apply -f k8s/discounts-deployment.yaml
-                            kubectl apply -f k8s/items-deployment.yaml
-                            kubectl apply -f k8s/frontend-deployment.yaml
-                            kubectl apply -f k8s/ingress.yaml
+                        sed -i "s|${DOCKERHUB_USER}/restauranty-frontend:.*|${DOCKERHUB_USER}/restauranty-frontend:${env.SHORT_SHA}|g" \
+                        k8s/frontend-deployment.yaml
 
-                            kubectl get pods -n ${NAMESPACE}
+                        kubectl apply -f k8s/namespace.yaml
+                        kubectl apply -f k8s/auth-deployment.yaml
+                        kubectl apply -f k8s/discounts-deployment.yaml
+                        kubectl apply -f k8s/items-deployment.yaml
+                        kubectl apply -f k8s/frontend-deployment.yaml
+                        kubectl apply -f k8s/ingress.yaml
+
+                        kubectl get pods -n ${NAMESPACE}
                         """
                     }
                 }
@@ -154,7 +192,11 @@ spec:
     }
 
     post {
-        success { echo 'Pipeline completed successfully!' }
-        failure { echo 'Pipeline failed!' }
+        success {
+            echo "✅ Pipeline completed successfully!"
+        }
+        failure {
+            echo "❌ Pipeline failed!"
+        }
     }
 }

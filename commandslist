@@ -1,0 +1,16 @@
+ 1046  kubectl exec -n restauranty deployment/frontend -- ls /usr/share/nginx/html
+ 1047  kubectl exec -n restauranty deployment/frontend -- ls /usr/share/nginx/html/static
+ 1048  kubectl exec -n restauranty deployment/frontend -- ls /usr/share/nginx/html/static/css\nkubectl exec -n restauranty deployment/frontend -- ls /usr/share/nginx/html/static/js
+ 1049  kubectl get pods -n restauranty -l app=frontend
+ 1050  kubectl exec -n restauranty deployment/frontend -- cat /etc/nginx/conf.d/default.conf
+ 1051  # Get the pod IP\nkubectl get pod frontend-6cdd665bf9-4hwbj -n restauranty -o wide\n\n# Test directly\nkubectl exec -n restauranty deployment/frontend -- wget -qO- http://localhost:3000/static/js/main.b3916626.js | head -5
+ 1052  curl -I https://fawadus.azure.diogohack.shop/static/js/main.b3916626.js
+ 1053  kubectl port-forward -n restauranty pod/frontend-6cdd665bf9-4hwbj 8080:3000 &\ncurl -I http://localhost:8080/static/js/main.b3916626.js
+ 1054  curl -I http://localhost:8080/static/js/main.b3916626.js
+ 1055  # Check ingress controller logs for clues\nkubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --tail=50 | grep static\n\n# Check what's actually handling the ingress\nkubectl get ingress -n restauranty restauranty-ingress -o yaml | grep -A5 "annotations"\n\n# Is there an Azure Application Gateway?\nkubectl get svc -n restauranty\nkubectl get svc -n ingress-nginx\n\n\n
+ 1056  \nkubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --tail=50 | grep static\n\n\nkubectl get ingress -n restauranty restauranty-ingress -o yaml | grep -A5 "annotations"\n\n\nkubectl get svc -n restauranty\nkubectl get svc -n ingress-nginx
+ 1057  kubectl port-forward -n restauranty svc/frontend-service 8081:80 &\ncurl -I http://localhost:8081/static/js/main.b3916626.js
+ 1058  kubectl apply -f k8s/ingress.yaml
+ 1059  curl -I https://fawadus.azure.diogohack.shop/static/js/main.b3916626.js
+ 1060  git add k8s/ingress.yaml\ngit commit -m "fix: remove rewrite-target and use-regex from ingress causing static asset 404s"\ngit push origin main
+ 1061  history
