@@ -73,45 +73,45 @@ spec:
         }
 
         stage('Build & Push Docker Images') {
-            steps {
-                container('docker') {
-                    script {
-                        def shortSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                        env.SHORT_SHA = shortSha
+    steps {
+        script {
+            // Get SHA in node container (has git)
+            def shortSha = sh(script: 'git config --global --add safe.directory /home/jenkins/agent/workspace/Restauranty && git rev-parse --short HEAD', returnStdout: true).trim()
+            env.SHORT_SHA = shortSha
+        }
+        container('docker') {
+            withCredentials([usernamePassword(
+                credentialsId: 'dockerhub-credentials',
+                usernameVariable: 'DOCKER_USER',
+                passwordVariable: 'DOCKER_PASS'
+            )]) {
+                sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
 
-                        withCredentials([usernamePassword(
-                            credentialsId: 'dockerhub-credentials',
-                            usernameVariable: 'DOCKER_USER',
-                            passwordVariable: 'DOCKER_PASS'
-                        )]) {
-                            sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                sh """
+                    docker buildx build --platform linux/amd64 \
+                        -t ${DOCKERHUB_USER}/restauranty-auth:${env.SHORT_SHA} \
+                        -t ${DOCKERHUB_USER}/restauranty-auth:latest \
+                        ./backend/auth --push
 
-                            sh """
-                                docker buildx build --platform linux/amd64 \
-                                    -t ${DOCKERHUB_USER}/restauranty-auth:${shortSha} \
-                                    -t ${DOCKERHUB_USER}/restauranty-auth:latest \
-                                    ./backend/auth --push
+                    docker buildx build --platform linux/amd64 \
+                        -t ${DOCKERHUB_USER}/restauranty-discounts:${env.SHORT_SHA} \
+                        -t ${DOCKERHUB_USER}/restauranty-discounts:latest \
+                        ./backend/discounts --push
 
-                                docker buildx build --platform linux/amd64 \
-                                    -t ${DOCKERHUB_USER}/restauranty-discounts:${shortSha} \
-                                    -t ${DOCKERHUB_USER}/restauranty-discounts:latest \
-                                    ./backend/discounts --push
+                    docker buildx build --platform linux/amd64 \
+                        -t ${DOCKERHUB_USER}/restauranty-items:${env.SHORT_SHA} \
+                        -t ${DOCKERHUB_USER}/restauranty-items:latest \
+                        ./backend/items --push
 
-                                docker buildx build --platform linux/amd64 \
-                                    -t ${DOCKERHUB_USER}/restauranty-items:${shortSha} \
-                                    -t ${DOCKERHUB_USER}/restauranty-items:latest \
-                                    ./backend/items --push
-
-                                docker buildx build --platform linux/amd64 \
-                                    -t ${DOCKERHUB_USER}/restauranty-frontend:${shortSha} \
-                                    -t ${DOCKERHUB_USER}/restauranty-frontend:latest \
-                                    ./client --push
-                            """
-                        }
-                    }
-                }
+                    docker buildx build --platform linux/amd64 \
+                        -t ${DOCKERHUB_USER}/restauranty-frontend:${env.SHORT_SHA} \
+                        -t ${DOCKERHUB_USER}/restauranty-frontend:latest \
+                        ./client --push
+                """
             }
         }
+    }
+}
 
         stage('Deploy to AKS') {
             steps {
@@ -155,46 +155,5 @@ spec:
     post {
         success { echo 'Pipeline completed successfully!' }
         failure { echo 'Pipeline failed!' }
-    }
-}
-stage('Build & Push Docker Images') {
-    steps {
-        container('docker') {
-            script {
-                sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/Restauranty'
-                def shortSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                env.SHORT_SHA = shortSha
-
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
-
-                    sh """
-                        docker buildx build --platform linux/amd64 \
-                            -t ${DOCKERHUB_USER}/restauranty-auth:${shortSha} \
-                            -t ${DOCKERHUB_USER}/restauranty-auth:latest \
-                            ./backend/auth --push
-
-                        docker buildx build --platform linux/amd64 \
-                            -t ${DOCKERHUB_USER}/restauranty-discounts:${shortSha} \
-                            -t ${DOCKERHUB_USER}/restauranty-discounts:latest \
-                            ./backend/discounts --push
-
-                        docker buildx build --platform linux/amd64 \
-                            -t ${DOCKERHUB_USER}/restauranty-items:${shortSha} \
-                            -t ${DOCKERHUB_USER}/restauranty-items:latest \
-                            ./backend/items --push
-
-                        docker buildx build --platform linux/amd64 \
-                            -t ${DOCKERHUB_USER}/restauranty-frontend:${shortSha} \
-                            -t ${DOCKERHUB_USER}/restauranty-frontend:latest \
-                            ./client --push
-                    """
-                }
-            }
-        }
     }
 }
