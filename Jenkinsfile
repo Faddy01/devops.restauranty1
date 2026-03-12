@@ -17,63 +17,39 @@ pipeline {
         }
 
         stage('Test') {
-    parallel {
-        stage('Test Auth') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                    reuseNode true
+            parallel {
+                stage('Test Auth') {
+                    steps {
+                        dir('backend/auth') {
+                            sh 'npm ci && npm test --if-present -- --watchAll=false --passWithNoTests || true'
+                        }
+                    }
                 }
-            }
-            steps {
-                dir('backend/auth') {
-                    sh 'npm ci && npm test --if-present -- --watchAll=false --passWithNoTests || true'
+                stage('Test Discounts') {
+                    steps {
+                        dir('backend/discounts') {
+                            sh 'npm ci && npm test --if-present -- --watchAll=false --passWithNoTests || true'
+                        }
+                    }
                 }
-            }
-        }
-        stage('Test Discounts') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                    reuseNode true
+                stage('Test Items') {
+                    steps {
+                        dir('backend/items') {
+                            sh 'npm ci && npm test --if-present -- --watchAll=false --passWithNoTests || true'
+                        }
+                    }
                 }
-            }
-            steps {
-                dir('backend/discounts') {
-                    sh 'npm ci && npm test --if-present -- --watchAll=false --passWithNoTests || true'
-                }
-            }
-        }
-        stage('Test Items') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                    reuseNode true
-                }
-            }
-            steps {
-                dir('backend/items') {
-                    sh 'npm ci && npm test --if-present -- --watchAll=false --passWithNoTests || true'
+                stage('Build Frontend') {
+                    steps {
+                        dir('client') {
+                            sh 'npm ci && CI=false npm run build'
+                        }
+                    }
                 }
             }
         }
-        stage('Build Frontend') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                    reuseNode true
-                }
-            }
-            steps {
-                dir('client') {
-                    sh 'npm ci && CI=false npm run build'
-                }
-            }
-        }
-    }
-}
+
         stage('Build & Push Docker Images') {
-            agent { label 'built-in' }
             steps {
                 script {
                     def shortSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -113,7 +89,6 @@ pipeline {
         }
 
         stage('Deploy to AKS') {
-            agent { label 'built-in' }
             steps {
                 withCredentials([azureServicePrincipal('azure-credentials')]) {
                     sh """
