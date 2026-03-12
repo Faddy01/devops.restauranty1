@@ -157,3 +157,44 @@ spec:
         failure { echo 'Pipeline failed!' }
     }
 }
+stage('Build & Push Docker Images') {
+    steps {
+        container('docker') {
+            script {
+                sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/Restauranty'
+                def shortSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                env.SHORT_SHA = shortSha
+
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+
+                    sh """
+                        docker buildx build --platform linux/amd64 \
+                            -t ${DOCKERHUB_USER}/restauranty-auth:${shortSha} \
+                            -t ${DOCKERHUB_USER}/restauranty-auth:latest \
+                            ./backend/auth --push
+
+                        docker buildx build --platform linux/amd64 \
+                            -t ${DOCKERHUB_USER}/restauranty-discounts:${shortSha} \
+                            -t ${DOCKERHUB_USER}/restauranty-discounts:latest \
+                            ./backend/discounts --push
+
+                        docker buildx build --platform linux/amd64 \
+                            -t ${DOCKERHUB_USER}/restauranty-items:${shortSha} \
+                            -t ${DOCKERHUB_USER}/restauranty-items:latest \
+                            ./backend/items --push
+
+                        docker buildx build --platform linux/amd64 \
+                            -t ${DOCKERHUB_USER}/restauranty-frontend:${shortSha} \
+                            -t ${DOCKERHUB_USER}/restauranty-frontend:latest \
+                            ./client --push
+                    """
+                }
+            }
+        }
+    }
+}
